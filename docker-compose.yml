@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dineflow-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: dineflow
+      POSTGRES_PASSWORD: dineflow_pass
+      POSTGRES_DB: dineflow_db
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dineflow-backend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://dineflow:dineflow_pass@postgres:5432/dineflow_db?schema=public
+    depends_on:
+      - postgres
