@@ -1,6 +1,6 @@
 // c03 – Restaurant details (FR1: real-time availability)
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, ImageBackground } from 'react-native';
 import { Screen, Button, Card, Chip, Hero, Stat, Label, H, Muted, Loading, Row } from '../../components/UI';
 import { colors } from '../../theme';
 import { useRestaurant, useTables, useReservations, useQueue } from '../../hooks';
@@ -20,7 +20,15 @@ export default function RestaurantDetails({ navigation }) {
         <Muted>Restaurant data is not available yet.</Muted>
       ) : (
         <>
-          <Hero title={r.name} subtitle={`${r.cuisine} · ${r.area}`} chip="TRENDING" height={170} />
+          <ImageBackground
+            source={{ uri: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800&q=80' }}
+            style={{ height: 200, borderRadius: 20, overflow: 'hidden', justifyContent: 'flex-end', padding: 16, backgroundColor: '#000' }}
+            imageStyle={{ opacity: 0.7 }}
+          >
+            <View style={{ position: 'absolute', top: 14, left: 14 }}><Chip label="TRENDING" tone="accent" /></View>
+            <Text style={{ color: '#fff', fontSize: 28, fontWeight: '800' }}>{r.name}</Text>
+            <Text style={{ color: '#E8D9C8', marginTop: 2, fontWeight: '600' }}>{r.cuisine} · {r.area}</Text>
+          </ImageBackground>
           <Row style={{ flexWrap: 'wrap' }}>
             {(r.tags || []).map((t) => <Chip key={t} label={t.toUpperCase()} tone="gray" />)}
           </Row>

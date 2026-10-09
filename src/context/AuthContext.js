@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, db } from '../firebase/config';
@@ -35,8 +35,8 @@ export function AuthProvider({ children }) {
         if (u && !u.isAnonymous) {
           try {
             const r = await readRole(u.uid);
-            if (r) { setRole(r); setUser(u); }
-            else { await signOut(auth); setRole(null); setUser(null); }
+            setRole(r || null);
+            setUser(u);
           } catch (e) {
             await signOut(auth); setRole(null); setUser(null);
           }
@@ -49,7 +49,15 @@ export function AuthProvider({ children }) {
     []
   );
 
-  const startAsGuest = () => signInAnonymously(auth);
+  const startAsGuest = async (name) => {
+    const email = name.toLowerCase().replace(/[^a-z0-9]/g, '') + '@guest.dineflow.com';
+    const pwd = 'guestpassword123';
+    try {
+      await signInWithEmailAndPassword(auth, email, pwd);
+    } catch (e) {
+      await createUserWithEmailAndPassword(auth, email, pwd);
+    }
+  };
 
   const staffLogin = async (email, password) => {
     const cred = await signInWithEmailAndPassword(auth, email.trim(), password);

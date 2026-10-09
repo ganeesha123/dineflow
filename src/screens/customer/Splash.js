@@ -18,7 +18,7 @@ export default function Splash({ navigation }) {
     setErr('');
     try {
       setGuestName(name.trim());
-      await startAsGuest();
+      await startAsGuest(name.trim());
     } catch (e) {
       setErr(friendlyErr(e));
       setBusy(false);
