@@ -108,9 +108,12 @@ export function AuthProvider({ children }) {
 
   // ---------- customer login ----------
   const customerLogin = async (email, password) => {
-    // Firebase auth listener handles everything after this resolves
-    await signInWithEmailAndPassword(auth, email.trim(), password);
-    // Name will be loaded from Firestore by the onAuthStateChanged listener
+    const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+    // Explicitly fetch and set the name to guarantee it displays immediately
+    const userDoc = await readUserDoc(cred.user.uid);
+    if (userDoc && userDoc.name) {
+      setGuestName(userDoc.name);
+    }
   };
 
   // ---------- Google login removed ----------

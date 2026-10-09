@@ -16,6 +16,11 @@ export default function Profile() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Keep local name in sync if guestName loads slightly after mount
+  useEffect(() => {
+    if (!name && guestName) setName(guestName);
+  }, [guestName]);
+
   // Load full profile from Firestore
   useEffect(() => {
     if (!user) return;
@@ -102,8 +107,7 @@ export default function Profile() {
       <Card>
         <Label>About</Label>
         <H>DineFlow</H>
-        <Muted>Restaurant Table Reservation & Queue App · IT3060 HCI · Group WE_127</Muted>
-        <Muted>Only the minimum data needed for bookings is stored (NFR6). No payment or ID data is collected.</Muted>
+        <Muted>DineFlow is your ultimate dining companion. Discover top-rated local restaurants, join their live virtual queues from anywhere, and secure a table effortlessly. Skip the physical line and enjoy a seamless dining experience.</Muted>
       </Card>
 
       <Button title="Sign out" variant="dangerOutline" onPress={logout} />
