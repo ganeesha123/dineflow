@@ -71,28 +71,6 @@ export default function Home({ navigation }) {
               <Button title="Join Virtual Queue" variant="secondary" onPress={() => navigation.navigate('JoinQueue')} />
             </ImageBackground>
           </TouchableOpacity>
-
-          <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <Label style={{ marginTop: 0 }}>Featured dishes</Label>
-            <Text style={{ color: colors.accent, fontWeight: '700', fontSize: 13 }}>Browse menu</Text>
-          </Row>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16, paddingHorizontal: 16, marginTop: 8, marginBottom: 12 }} contentContainerStyle={{ gap: 12 }}>
-            <View style={{ width: 140 }}>
-              <Image source={{ uri: 'https://images.unsplash.com/photo-1544025162-8316238b6d3f?w=300&q=80' }} style={{ width: 140, height: 100, borderRadius: 12 }} />
-              <Text style={{ fontWeight: '800', marginTop: 6, color: colors.ink }}>Harbor Bistro 4.9</Text>
-              <Text style={{ fontSize: 12, color: colors.sub }}>Modern American</Text>
-            </View>
-            <View style={{ width: 140 }}>
-              <Image source={{ uri: 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=300&q=80' }} style={{ width: 140, height: 100, borderRadius: 12 }} />
-              <Text style={{ fontWeight: '800', marginTop: 6, color: colors.ink }}>Olive & Oak 4.8</Text>
-              <Text style={{ fontSize: 12, color: colors.sub }}>Italian · Garden District</Text>
-            </View>
-            <View style={{ width: 140 }}>
-              <Image source={{ uri: 'https://images.unsplash.com/photo-1564759077036-3def242e69c5?w=300&q=80' }} style={{ width: 140, height: 100, borderRadius: 12 }} />
-              <Text style={{ fontWeight: '800', marginTop: 6, color: colors.ink }}>The Catch</Text>
-              <Text style={{ fontSize: 12, color: colors.sub }}>Seafood</Text>
-            </View>
-          </ScrollView>
         </>
       )}
 

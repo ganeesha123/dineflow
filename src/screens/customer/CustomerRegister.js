@@ -12,7 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import { friendlyErr } from '../../utils';
 
 export default function CustomerRegister({ navigation }) {
-  const { customerRegister, googleLogin } = useAuth();
+  const { customerRegister } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
@@ -20,7 +20,6 @@ export default function CustomerRegister({ navigation }) {
   const [confirm, setConfirm] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [busyGoogle, setBusyGoogle] = useState(false);
   const [err, setErr] = useState('');
 
   const register = async () => {
@@ -34,21 +33,13 @@ export default function CustomerRegister({ navigation }) {
     setBusy(true);
     try {
       await customerRegister(name, email, mobile, password);
+      // Registration successful and user is signed out automatically in context.
+      // Navigate to login screen so they can log in manually.
+      Alert.alert('Account created!', 'Please sign in with your new account.');
+      navigation.replace('CustomerLogin');
     } catch (e) {
       setErr(friendlyErr(e));
       setBusy(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setErr('');
-    setBusyGoogle(true);
-    try {
-      await googleLogin();
-    } catch (e) {
-      setErr(friendlyErr(e));
-    } finally {
-      setBusyGoogle(false);
     }
   };
 
@@ -124,18 +115,6 @@ export default function CustomerRegister({ navigation }) {
             ) : null}
 
             <Button title="Create Account" onPress={register} loading={busy} style={{ marginTop: 8 }} />
-
-            {/* Google */}
-            <View style={st.dividerRow}>
-              <View style={st.dividerLine} />
-              <Text style={st.dividerTxt}>or continue with</Text>
-              <View style={st.dividerLine} />
-            </View>
-
-            <TouchableOpacity style={[st.googleBtn, busyGoogle && { opacity: 0.6 }]} onPress={handleGoogleLogin} disabled={busyGoogle}>
-              <Ionicons name="logo-google" size={20} color="#EA4335" />
-              <Text style={st.googleTxt}>{busyGoogle ? 'Connecting...' : 'Continue with Google'}</Text>
-            </TouchableOpacity>
 
             <TouchableOpacity onPress={() => navigation.navigate('CustomerLogin')} style={{ alignItems: 'center', marginTop: 20 }}>
               <Text style={{ color: colors.sub, fontSize: 14 }}>

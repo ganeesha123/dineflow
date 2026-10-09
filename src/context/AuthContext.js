@@ -35,14 +35,7 @@ export function AuthProvider({ children }) {
   const [ready, setReady] = useState(false);
   const [guestName, setGuestNameState] = useState('');
 
-  // Google Auth session hook
-  // NOTE: Replace the expoClientId with your own from https://console.cloud.google.com
-  const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    expoClientId: 'YOUR_EXPO_CLIENT_ID.apps.googleusercontent.com',
-    androidClientId: 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
-    iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
-    webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
-  });
+  // (Google Auth removed as per user request to avoid 400 errors without real credentials)
 
   // ---------- persist name locally ----------
   useEffect(() => {
@@ -54,14 +47,7 @@ export function AuthProvider({ children }) {
     AsyncStorage.setItem(NAME_KEY, n).catch(() => {});
   };
 
-  // ---------- handle Google auth response ----------
-  useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      const { id_token } = googleResponse.params;
-      const credential = GoogleAuthProvider.credential(id_token);
-      signInWithCredential(auth, credential).catch((e) => console.warn('Google sign-in error:', e.message));
-    }
-  }, [googleResponse]);
+  // ---------- handle Firebase auth state ----------
 
   // ---------- Firebase auth state listener ----------
   // This is the SINGLE SOURCE OF TRUTH for user state.
@@ -115,8 +101,8 @@ export function AuthProvider({ children }) {
       role: 'customer',
     };
     await setDoc(doc(db, 'users', cred.user.uid), profile);
-    // setGuestName is also called by the auth state listener above,
-    // but we call it here too for immediate UI update
+    // Sign out immediately so user can log in from the login screen
+    await signOut(auth);
     setGuestName(name.trim());
   };
 
@@ -127,14 +113,7 @@ export function AuthProvider({ children }) {
     // Name will be loaded from Firestore by the onAuthStateChanged listener
   };
 
-  // ---------- Google login ----------
-  const googleLogin = async () => {
-    const result = await promptGoogleAsync();
-    if (result.type === 'cancel') {
-      throw new Error('Google sign-in was cancelled.');
-    }
-    // If success, the useEffect above handles signInWithCredential
-  };
+  // ---------- Google login removed ----------
 
   // ---------- staff login ----------
   const staffLogin = async (email, password) => {
@@ -162,7 +141,6 @@ export function AuthProvider({ children }) {
         setGuestName,
         customerRegister,
         customerLogin,
-        googleLogin,
         staffLogin,
         logout,
       }}

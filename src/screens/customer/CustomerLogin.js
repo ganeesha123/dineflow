@@ -12,12 +12,11 @@ import { useAuth } from '../../context/AuthContext';
 import { friendlyErr } from '../../utils';
 
 export default function CustomerLogin({ navigation }) {
-  const { customerLogin, googleLogin } = useAuth();
+  const { customerLogin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [busyGoogle, setBusyGoogle] = useState(false);
   const [err, setErr] = useState('');
 
   const login = async () => {
@@ -30,18 +29,6 @@ export default function CustomerLogin({ navigation }) {
     } catch (e) {
       setErr(friendlyErr(e));
       setBusy(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setErr('');
-    setBusyGoogle(true);
-    try {
-      await googleLogin();
-    } catch (e) {
-      setErr(friendlyErr(e));
-    } finally {
-      setBusyGoogle(false);
     }
   };
 
@@ -99,18 +86,6 @@ export default function CustomerLogin({ navigation }) {
             ) : null}
 
             <Button title="Sign In" onPress={login} loading={busy} style={{ marginTop: 4 }} />
-
-            {/* Google */}
-            <View style={st.dividerRow}>
-              <View style={st.dividerLine} />
-              <Text style={st.dividerTxt}>or continue with</Text>
-              <View style={st.dividerLine} />
-            </View>
-
-            <TouchableOpacity style={[st.googleBtn, busyGoogle && { opacity: 0.6 }]} onPress={handleGoogleLogin} disabled={busyGoogle}>
-              <Ionicons name="logo-google" size={20} color="#EA4335" />
-              <Text style={st.googleTxt}>{busyGoogle ? 'Signing in...' : 'Continue with Google'}</Text>
-            </TouchableOpacity>
 
             <TouchableOpacity onPress={() => navigation.navigate('CustomerRegister')} style={{ alignItems: 'center', marginTop: 20 }}>
               <Text style={{ color: colors.sub, fontSize: 14 }}>
