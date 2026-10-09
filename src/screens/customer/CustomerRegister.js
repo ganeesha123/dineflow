@@ -12,7 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import { friendlyErr } from '../../utils';
 
 export default function CustomerRegister({ navigation }) {
-  const { customerRegister } = useAuth();
+  const { customerRegister, googleLogin } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
@@ -20,6 +20,7 @@ export default function CustomerRegister({ navigation }) {
   const [confirm, setConfirm] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [busyGoogle, setBusyGoogle] = useState(false);
   const [err, setErr] = useState('');
 
   const register = async () => {
@@ -38,6 +39,19 @@ export default function CustomerRegister({ navigation }) {
       setBusy(false);
     }
   };
+
+  const handleGoogleLogin = async () => {
+    setErr('');
+    setBusyGoogle(true);
+    try {
+      await googleLogin();
+    } catch (e) {
+      setErr(friendlyErr(e));
+    } finally {
+      setBusyGoogle(false);
+    }
+  };
+
 
   return (
     <SafeAreaView style={st.safe}>
@@ -118,9 +132,9 @@ export default function CustomerRegister({ navigation }) {
               <View style={st.dividerLine} />
             </View>
 
-            <TouchableOpacity style={st.googleBtn}>
+            <TouchableOpacity style={[st.googleBtn, busyGoogle && { opacity: 0.6 }]} onPress={handleGoogleLogin} disabled={busyGoogle}>
               <Ionicons name="logo-google" size={20} color="#EA4335" />
-              <Text style={st.googleTxt}>Continue with Google</Text>
+              <Text style={st.googleTxt}>{busyGoogle ? 'Connecting...' : 'Continue with Google'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => navigation.navigate('CustomerLogin')} style={{ alignItems: 'center', marginTop: 20 }}>

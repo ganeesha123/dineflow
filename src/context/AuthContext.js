@@ -1,25 +1,50 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithCredential,
+  signOut,
+} from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 import { auth, db } from '../firebase/config';
+
+// Required for Google auth session to close properly after redirect
+WebBrowser.maybeCompleteAuthSession();
 
 const Ctx = createContext(null);
 export const useAuth = () => useContext(Ctx);
 const NAME_KEY = 'dineflow_guest_name';
 
-async function readRole(uid) {
+async function readUserDoc(uid) {
   const s = await getDoc(doc(db, 'users', uid));
-  const r = s.exists() ? s.data().role : null;
-  return r === 'staff' || r === 'manager' ? r : null;
+  return s.exists() ? s.data() : null;
+}
+
+function isStaffRole(role) {
+  return role === 'staff' || role === 'manager';
 }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null); // null = customer, 'staff' | 'manager'
+  const [role, setRole] = useState(null);
   const [ready, setReady] = useState(false);
   const [guestName, setGuestNameState] = useState('');
 
+  // Google Auth session hook
+  // NOTE: Replace the expoClientId with your own from https://console.cloud.google.com
+  const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
+    expoClientId: 'YOUR_EXPO_CLIENT_ID.apps.googleusercontent.com',
+    androidClientId: 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
+    iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
+    webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+  });
+
+  // ---------- persist name locally ----------
   useEffect(() => {
     AsyncStorage.getItem(NAME_KEY).then((n) => n && setGuestNameState(n)).catch(() => {});
   }, []);
@@ -29,74 +54,119 @@ export function AuthProvider({ children }) {
     AsyncStorage.setItem(NAME_KEY, n).catch(() => {});
   };
 
+  // ---------- handle Google auth response ----------
+  useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      const { id_token } = googleResponse.params;
+      const credential = GoogleAuthProvider.credential(id_token);
+      signInWithCredential(auth, credential).catch((e) => console.warn('Google sign-in error:', e.message));
+    }
+  }, [googleResponse]);
+
+  // ---------- Firebase auth state listener ----------
+  // This is the SINGLE SOURCE OF TRUTH for user state.
+  // It loads the user's name from Firestore here so it is always in sync.
   useEffect(
     () =>
       onAuthStateChanged(auth, async (u) => {
-        if (u && !u.isAnonymous) {
+        if (u) {
           try {
-            const r = await readRole(u.uid);
-            setRole(r || null);
-            setUser(u);
+            const userDoc = await readUserDoc(u.uid);
+            if (userDoc) {
+              if (isStaffRole(userDoc.role)) {
+                // Staff or manager user
+                setRole(userDoc.role);
+                setUser(u);
+              } else {
+                // Regular customer (registered via email or google)
+                setRole(null);
+                setUser(u);
+                // Load their name from Firestore into the greeting
+                if (userDoc.name) {
+                  setGuestName(userDoc.name);
+                }
+              }
+            } else {
+              // No Firestore doc — anonymous/guest user (old flow), keep as customer
+              setRole(null);
+              setUser(u);
+            }
           } catch (e) {
-            await signOut(auth); setRole(null); setUser(null);
+            console.warn('Auth state error:', e.message);
+            setRole(null);
+            setUser(u);
           }
         } else {
           setRole(null);
-          setUser(u);
+          setUser(null);
         }
         setReady(true);
       }),
     []
   );
 
-  const startAsGuest = async (name) => {
-    const email = name.toLowerCase().replace(/[^a-z0-9]/g, '') + '@guest.dineflow.com';
-    const pwd = 'guestpassword123';
-    try {
-      await signInWithEmailAndPassword(auth, email, pwd);
-    } catch (e) {
-      await createUserWithEmailAndPassword(auth, email, pwd);
-    }
-  };
-
+  // ---------- customer register ----------
   const customerRegister = async (name, email, mobile, password) => {
     const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
-    await setDoc(doc(db, 'users', cred.user.uid), {
+    const profile = {
       name: name.trim(),
       email: email.trim(),
       mobile: mobile.trim(),
-      role: 'customer'
-    });
+      role: 'customer',
+    };
+    await setDoc(doc(db, 'users', cred.user.uid), profile);
+    // setGuestName is also called by the auth state listener above,
+    // but we call it here too for immediate UI update
     setGuestName(name.trim());
   };
 
+  // ---------- customer login ----------
   const customerLogin = async (email, password) => {
-    const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-    const docSnap = await getDoc(doc(db, 'users', cred.user.uid));
-    if (docSnap.exists() && docSnap.data().name) {
-      setGuestName(docSnap.data().name);
-    }
+    // Firebase auth listener handles everything after this resolves
+    await signInWithEmailAndPassword(auth, email.trim(), password);
+    // Name will be loaded from Firestore by the onAuthStateChanged listener
   };
 
+  // ---------- Google login ----------
   const googleLogin = async () => {
-    // In Expo Go, real Google Auth requires expo-auth-session and explicit Web Client IDs.
-    // We will simulate a successful login for the prototype if credentials aren't set.
-    throw new Error('Google Sign-In requires OAuth configuration in the Firebase Console and Expo app.json. Please use Email/Password for the prototype.');
+    const result = await promptGoogleAsync();
+    if (result.type === 'cancel') {
+      throw new Error('Google sign-in was cancelled.');
+    }
+    // If success, the useEffect above handles signInWithCredential
   };
 
+  // ---------- staff login ----------
   const staffLogin = async (email, password) => {
     const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-    const r = await readRole(cred.user.uid);
-    if (!r) {
+    const userDoc = await readUserDoc(cred.user.uid);
+    if (!userDoc || !isStaffRole(userDoc.role)) {
       await signOut(auth);
       throw new Error('This account is not registered as restaurant staff.');
     }
   };
 
-  const logout = () => signOut(auth);
+  const logout = () => {
+    setGuestNameState('');
+    AsyncStorage.removeItem(NAME_KEY).catch(() => {});
+    return signOut(auth);
+  };
 
   return (
-    <Ctx.Provider value={{ user, role, ready, guestName, setGuestName, startAsGuest, customerRegister, customerLogin, googleLogin, staffLogin, logout }}>
+    <Ctx.Provider
+      value={{
+        user,
+        role,
+        ready,
+        guestName,
+        setGuestName,
+        customerRegister,
+        customerLogin,
+        googleLogin,
+        staffLogin,
+        logout,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );
