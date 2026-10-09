@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, db } from '../firebase/config';
 
@@ -59,6 +59,31 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const customerRegister = async (name, email, mobile, password) => {
+    const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      name: name.trim(),
+      email: email.trim(),
+      mobile: mobile.trim(),
+      role: 'customer'
+    });
+    setGuestName(name.trim());
+  };
+
+  const customerLogin = async (email, password) => {
+    const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+    const docSnap = await getDoc(doc(db, 'users', cred.user.uid));
+    if (docSnap.exists() && docSnap.data().name) {
+      setGuestName(docSnap.data().name);
+    }
+  };
+
+  const googleLogin = async () => {
+    // In Expo Go, real Google Auth requires expo-auth-session and explicit Web Client IDs.
+    // We will simulate a successful login for the prototype if credentials aren't set.
+    throw new Error('Google Sign-In requires OAuth configuration in the Firebase Console and Expo app.json. Please use Email/Password for the prototype.');
+  };
+
   const staffLogin = async (email, password) => {
     const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
     const r = await readRole(cred.user.uid);
@@ -71,7 +96,7 @@ export function AuthProvider({ children }) {
   const logout = () => signOut(auth);
 
   return (
-    <Ctx.Provider value={{ user, role, ready, guestName, setGuestName, startAsGuest, staffLogin, logout }}>
+    <Ctx.Provider value={{ user, role, ready, guestName, setGuestName, startAsGuest, customerRegister, customerLogin, googleLogin, staffLogin, logout }}>
       {children}
     </Ctx.Provider>
   );

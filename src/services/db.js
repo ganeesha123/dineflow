@@ -4,8 +4,17 @@ import {
 import { db } from '../firebase/config';
 import { RID, findTables } from '../utils';
 
+import { doc as firestoreDoc, getDoc as firestoreGetDoc } from 'firebase/firestore';
+
 const list = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 const listen = (q, cb) => onSnapshot(q, (s) => cb(list(s)), (e) => console.warn('Firestore:', e.message));
+
+// Fetch a user profile (name + mobile) – used by staff call screen
+export async function getUserProfile(uid) {
+  const s = await firestoreGetDoc(firestoreDoc(db, 'users', uid));
+  return s.exists() ? s.data() : null;
+}
+
 
 // ---------- realtime watchers ----------
 export const watchRestaurant = (cb) =>

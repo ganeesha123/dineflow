@@ -8,6 +8,8 @@ import CustomerTabs from './CustomerTabs';
 import StaffTabs from './StaffTabs';
 
 import Splash from '../screens/customer/Splash';
+import CustomerRegister from '../screens/customer/CustomerRegister';
+import CustomerLogin from '../screens/customer/CustomerLogin';
 import RestaurantDetails from '../screens/customer/RestaurantDetails';
 import ReservationDetails from '../screens/customer/ReservationDetails';
 import AvailableSlots from '../screens/customer/AvailableSlots';
@@ -35,6 +37,8 @@ export default function RootNavigator() {
       {!user ? (
         <>
           <Stack.Screen name="Splash" component={Splash} />
+          <Stack.Screen name="CustomerRegister" component={CustomerRegister} />
+          <Stack.Screen name="CustomerLogin" component={CustomerLogin} />
           <Stack.Screen name="StaffLogin" component={StaffLogin} />
         </>
       ) : role ? (

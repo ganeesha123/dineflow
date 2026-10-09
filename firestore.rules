@@ -10,9 +10,15 @@ service cloud.firestore {
     }
 
     // Staff / manager role documents are created by hand in the Firebase console only.
+    // Customers can create their own profile on registration, but cannot elevate their role to staff.
     match /users/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
-      allow write: if false;
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && !(request.resource.data.role in ['staff', 'manager']);
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && !(request.resource.data.role in ['staff', 'manager']);
     }
 
     // Restaurant profile + floor tables: everyone signed in can read, only staff can change.
