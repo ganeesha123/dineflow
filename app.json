@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "DineFlow",
+    "slug": "dineflow",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": { "supportsTablet": false },
+    "android": { "adaptiveIcon": { "backgroundColor": "#F6F1E9" } }
+  }
+}

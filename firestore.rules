@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isStaff() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'manager'];
+    }
+
+    // Staff / manager role documents are created by hand in the Firebase console only.
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Restaurant profile + floor tables: everyone signed in can read, only staff can change.
+    match /restaurants/{id} {
+      allow read: if signedIn();
+      allow write: if isStaff();
+    }
+    match /tables/{id} {
+      allow read: if signedIn();
+      allow write: if isStaff();
+    }
+
+    // Reservations: diners create / modify / cancel their own; staff manage all.
+    match /reservations/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'confirmed';
+      allow update: if isStaff()
+        || (signedIn()
+            && resource.data.userId == request.auth.uid
+            && request.resource.data.userId == request.auth.uid);
+      allow delete: if false;
+    }
+
+    // Virtual queue: diners join, may mark "arrived" or leave; staff do everything else.
+    match /queue/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'waiting';
+      allow update: if isStaff()
+        || (signedIn()
+            && resource.data.userId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'arrived'])
+            && (request.resource.data.status == resource.data.status || request.resource.data.status == 'left'));
+      allow delete: if false;
+    }
+
+    // Ticket-number counter (incremented inside a transaction when a diner joins).
+    match /meta/{id} {
+      allow read: if signedIn();
+      allow write: if isStaff()
+        || (signedIn() && resource != null && request.resource.data.n == resource.data.n + 1);
+    }
+  }
+}
